@@ -1,2 +1,1 @@
-# lotteryServer
-lotteryServer
+#lotteryServer
