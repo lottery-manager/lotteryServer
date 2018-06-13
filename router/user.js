@@ -36,7 +36,7 @@ router.route('/getCode')
             return User.findOne({telNo:telNo}).then((result)=>{
                 let code = Math.random().toString(10).substr(2, 6);
 
-                let text = "【极客联盟】您的短信验证码为："+code;
+                let text = "【极客Super】您的短信验证码为："+code;
 
                 return provider.sendSingleSms({
                     mobile: telNo,
