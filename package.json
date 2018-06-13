@@ -12,7 +12,8 @@
     "lodash": "^4.17.4",
     "moment": "^2.18.1",
     "mongoose": "^5.0.1",
-    "multer": "^1.3.0"
+    "multer": "^1.3.0",
+    "yunpian-sms-client": "^2.0.3"
   },
   "description": "server for lottery",
   "license": "MIT",

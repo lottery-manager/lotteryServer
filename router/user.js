@@ -11,6 +11,8 @@ const _ = require('lodash');
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({storage: storage});
+const smsProvider = require('yunpian-sms-client').v2;
+const provider = smsProvider.initWithKey('3fe8aa1c8e1201382b288b17a31af1ca');
 
 const config = require('../config').webServer;
 
@@ -32,38 +34,22 @@ router.route('/getCode')
             }
 
             return User.findOne({telNo:telNo}).then((result)=>{
-                if(!result){
-                    return P.reject('手机号码未登记');
-                }
-                if(result.isDel){
-                    return P.reject('手机号码对应账户已停用');
-                }
                 let code = Math.random().toString(10).substr(2, 6);
 
-                let text = "【永天科技】"+code+"(边检后勤手机验证码，请完成验证)，如非本人操作，请忽略本短信";
+                let text = "【极客联盟】您的短信验证码为："+code;
 
-                // return P.resolve(code).then(function () {
-                //     req.session.telNo = telNo;
-                //     req.session.code = code;
-                //     req.session.save();
-                //     let at = signature.sign(req.session.id,config.secret);
-                //     return P.resolve({accessToken:at,code:code})
-                // });
-
-                // return provider.sendSingleSms({
-                //     mobile: telNo,
-                //     text: text,
-                //     uid: '234'//可选，请参见官方文档说明
-                // }).then(()=>{
-                //     req.session.telNo = telNo;
-                //     req.session.code = code;
-                //     req.session.save();
-                //     let at = signature.sign(req.session.id,config.secret);
-                //     return P.resolve({accessToken:at})
-                // });
-
+                return provider.sendSingleSms({
+                    mobile: telNo,
+                    text: text,
+                    uid: '234'//可选，请参见官方文档说明
+                }).then(() => {
+                    req.session.telNo = telNo;
+                    req.session.code = code;
+                    req.session.save();
+                    let at = signature.sign(req.session.id,config.secret);
+                    return P.resolve({code:0,data:{accessToken:at}});
+                });
             });
-
         },util.noAuth)
     });
 
@@ -77,10 +63,10 @@ router.route('/checkCode')
             }
 
             if(req.session && req.session.code == code && req.session.telNo == telNo){
-                return P.resolve({})
+                return P.resolve({code:0})
             }
             else {
-                return P.reject("验证码不正确")
+                return P.reject({code:2000,error:'验证码不正确'})
             }
         },util.noAuth)
     });
@@ -105,9 +91,8 @@ router.route('/bindAccessToken')
                         }
                     });
                 } else {
-                    return P.reject({status:401});
+                    return P.resolve({code: 2001,error:'令牌已过期'});
                 }
-
             })
         },util.noAuth);
     });
@@ -157,16 +142,15 @@ router.route('/register')
         util.jsonResponse(req, res,()=> {
             let telNo = req.body.telNo;
             let password = req.body.password;
-            // let code = req.body.code;
+            let code = req.body.code;
 
             if(!telNo || !password){
-                return P.resolve({code: 1, error: "无效参数"});
+                return P.resolve({code: 1000, error: "无效参数"});
             }
 
-            // if(!req.session.telNo == telNo || !req.session.code == code){
-            //
-            //     return P.reject("短信验证码错误")
-            // }
+            if(!req.session.telNo == telNo || !req.session.code == code){
+                return P.resolve({code: 2002, error: "短信验证码错误"});
+            }
 
             return User.findOneAndUpdate({telNo: telNo},{
                 password: crypto.createHash('md5').update(password).digest('hex'),
