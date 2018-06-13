@@ -54,7 +54,7 @@ router.route('/getCode')
     });
 
 router.route('/checkCode')
-    .post((req,res) =>{
+    .post(upload.none(),(req,res) =>{
         util.jsonResponse(req,res,()=>{
             let code = req.body.code;
             let telNo = req.body.telNo;
@@ -138,7 +138,7 @@ router.route('/login')
 
 //注册
 router.route('/register')
-    .post((req,res) => {
+    .post(upload.none(),(req,res) => {
         util.jsonResponse(req, res,()=> {
             let telNo = req.body.telNo;
             let password = req.body.password;
