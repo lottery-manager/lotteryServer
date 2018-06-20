@@ -36,7 +36,7 @@ const jsonResponse = (req, res, handle, getAuth = needAuth) => {
     P.resolve().then(()=>{
         return procReq(req,handle,getAuth);
     }).then((result)=>{
-        res.json({data:result || {}});
+        res.json(result || {});
     }).catch((e)=>{
         let err = e || {};
         res.status(err.status||500).json(e);
