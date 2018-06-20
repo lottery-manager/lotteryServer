@@ -26,6 +26,24 @@ const upsertApp = (req,res) => {
     });
 };
 
+router.route('/getAppInfo')
+    .post(upload.none(),(req,res) =>{
+        util.jsonResponse(req,res,(tarData)=>{
+
+            return App.findOne({bundleId: tarData.bundleId,system:tarData.system}).then((res)=>{
+                if (!res) {
+                    return P.resolve({code:1000,error:`${bundleId} 没有找到相关app信息`});
+                }
+
+                if (res.isStop) {
+                    return P.resolve({code:1001,error:`${bundleId} 已被停用`});
+                }else {
+                    return P.resolve({code:0,data:res});
+                }
+            });
+        });
+    });
+
 router.route('/')
     .get((req,res) =>{
         util.jsonAggResponse(req,res,(tarData)=>{
@@ -55,7 +73,6 @@ router.route('/')
                 }
             }
         })
-
     })
     .post(upload.none(),upsertApp);
 

@@ -30,7 +30,7 @@ router.route('/getCode')
         util.jsonResponse(req,res,()=>{
             let telNo = req.body.telNo;
             if (!/(13[0-9]|15[0-9]|17[0-9]|18[0-9]|14[0-9])[0-9]{8}$/.test(telNo)){
-                return P.reject('手机号码无效');
+                return P.resolve({code:2001,error:'手机号码无效'});
             }
 
             return User.findOne({telNo:telNo}).then((result)=>{
@@ -66,7 +66,7 @@ router.route('/checkCode')
                 return P.resolve({code:0})
             }
             else {
-                return P.reject({code:2000,error:'验证码不正确'})
+                return P.resolve({code:2000,error:'验证码不正确'})
             }
         },util.noAuth)
     });
@@ -86,6 +86,7 @@ router.route('/bindAccessToken')
                                 telNo: result.telNo,
                                 nickname: result.nickname || '',
                                 sex: result.sex || '',
+                                sign: result.sign || '',
                                 role: getRole(tarData.session.telNo)
                             }
                         }
@@ -124,6 +125,7 @@ router.route('/login')
                                 telNo: result.telNo,
                                 nickname: result.nickname || '',
                                 sex: result.sex || '',
+                                sign: result.sign || '',
                                 role: getRole(telNo)
                             }
                         }
@@ -167,12 +169,40 @@ router.route('/register')
                             telNo: result.telNo,
                             nickname: result.nickname || '',
                             sex: result.sex || '',
+                            sign: result.sign || '',
                             role: getRole(telNo)
                         }
                     }
                 });
             });
         },util.noAuth);
+    });
+
+//修改用户信息
+router.route('/modifyUser')
+    .post(upload.none(),(req,res) => {
+        util.jsonResponse(req,res,(tarData)=>{
+            let telNo = tarData.telNo;
+            let user = {
+                sign: tarData.sign || '',
+                nickname: tarData.nickname || ''
+            };
+
+            return User.findOneAndUpdate({telNo: telNo},user,{new:true}).then((result) => {
+                return P.resolve({
+                    code: 0,
+                    data: {
+                        name: result.name || '',
+                        avatar: result.avatar || '',
+                        telNo: result.telNo,
+                        nickname: result.nickname || '',
+                        sex: result.sex || '',
+                        sign: result.sign || '',
+                        role: getRole(telNo)
+                    }
+                });
+            });
+        })
     });
 
 //注销

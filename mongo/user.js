@@ -8,6 +8,7 @@ const user = new mongoose.Schema(
         name: {type: String}, //姓名
         sex: {type: Number}, //性别(0:男,1:女)
         avatar: {type: String}, //头像
+        sign: {type: String},//个性签名
         registerTime: {type: String}, //注册时间
         isStop: {type: Boolean}, //是否停用
         src: {bundleId: {type: String}, bundleName: {type: String}, system: {type: String}}//用户注册来源
