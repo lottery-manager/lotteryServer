@@ -41,7 +41,7 @@ router.route('/getAppInfo')
                     return P.resolve({code:0,data:res});
                 }
             });
-        });
+        },util.noAuth);
     });
 
 router.route('/')

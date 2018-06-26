@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const user = new mongoose.Schema(
     {
         telNo: {type: String, unique: true}, //用户手机号
+        identity: {type: String},//唯一编号
         password: {type: String}, //密码
         nickname: {type: String}, //昵称
         name: {type: String}, //姓名

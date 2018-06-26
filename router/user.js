@@ -38,17 +38,22 @@ router.route('/getCode')
 
                 let text = "【极客Super】您的验证码是"+code+"。如非本人操作，请忽略本短信";
 
-                return provider.sendSingleSms({
-                    mobile: telNo,
-                    text: text,
-                    uid: '234'//可选，请参见官方文档说明
-                }).then(() => {
-                    req.session.telNo = telNo;
-                    req.session.code = code;
-                    req.session.save();
-                    let at = signature.sign(req.session.id,config.secret);
-                    return P.resolve({code:0,data:{accessToken:at}});
-                });
+                req.session.telNo = telNo;
+                req.session.code = code;
+                req.session.save();
+                return P.resolve({code:0,data:{code:code}});
+
+                // return provider.sendSingleSms({
+                //     mobile: telNo,
+                //     text: text,
+                //     uid: '234'//可选，请参见官方文档说明
+                // }).then(() => {
+                //     req.session.telNo = telNo;
+                //     req.session.code = code;
+                //     req.session.save();
+                //     let at = signature.sign(req.session.id,config.secret);
+                //     return P.resolve({code:0,data:{accessToken:at}});
+                // });
             });
         },util.noAuth)
     });
@@ -63,10 +68,10 @@ router.route('/checkCode')
             }
 
             if(req.session && req.session.code == code && req.session.telNo == telNo){
-                return P.resolve({code:0})
+                return P.resolve({code:0});
             }
             else {
-                return P.resolve({code:2000,error:'验证码不正确'})
+                return P.resolve({code:2000,error:'验证码不正确'});
             }
         },util.noAuth)
     });
@@ -77,11 +82,14 @@ router.route('/bindAccessToken')
         util.jsonResponse(req,res,(tarData) => {
             return User.findOne({telNo: tarData.session.telNo}).then((result)=>{
                 if(result) {
+                    let accessToken = (req.query.accessToken || req.body.accessToken);
                     return P.resolve({
                         code: 0,
                         data: {
+                            accessToken: accessToken,
                             user: {
                                 name: result.name || '',
+                                identity: result.identity || '',
                                 avatar: result.avatar || '',
                                 telNo: result.telNo,
                                 nickname: result.nickname || '',
@@ -112,6 +120,7 @@ router.route('/login')
             return User.findOne({telNo:telNo}).then((result)=>{
                 if(result && result.password == crypto.createHash('md5').update(password).digest('hex')) { //验证密码是否正确
                     req.session.telNo = telNo;
+                    delete req.session.code;
                     req.session.save();
 
                     let at = signature.sign(req.session.id,config.secret);
@@ -121,6 +130,7 @@ router.route('/login')
                             accessToken:at,
                             user: {
                                 name: result.name || '',
+                                identity: result.identity || '',
                                 avatar: result.avatar || '',
                                 telNo: result.telNo,
                                 nickname: result.nickname || '',
@@ -145,19 +155,34 @@ router.route('/register')
             let telNo = req.body.telNo;
             let password = req.body.password;
             let code = req.body.code;
+            let bundleId = req.body.bundleId;
+            let bundleName = req.body.bundleName;
+            let system = req.body.system;
 
             if(!telNo || !password){
                 return P.resolve({code: 1000, error: "无效参数"});
             }
 
-            if(!req.session.telNo == telNo || !req.session.code == code){
+            if(req.session.telNo != telNo || req.session.code != code){
                 return P.resolve({code: 2002, error: "短信验证码错误"});
             }
 
-            return User.findOneAndUpdate({telNo: telNo},{
-                password: crypto.createHash('md5').update(password).digest('hex'),
-                registerTime: new Date()
-            },{upsert:true, new:true}).then((result) => {
+            return User.findOne({telNo: telNo}).then((res) => {
+                if (res) {
+                    return User.findOneAndUpdate({telNo: telNo},{password: crypto.createHash('md5').update(password).digest('hex')},{new:true});
+                }
+                else {
+                    let user = {
+                        identity: Math.random().toString(10).substr(2, 6),
+                        password: crypto.createHash('md5').update(password).digest('hex'),
+                        registerTime: new Date(),
+                        src:{bundleId:bundleId,bundleName:bundleName,system:system}
+                    };
+
+                    return User.findOneAndUpdate({telNo: telNo},user,{upsert:true,new:true});
+                }
+            }).then((result) => {
+                delete req.session.code;
                 let at = signature.sign(req.session.id,config.secret);
                 return P.resolve({
                     code: 0,
@@ -165,6 +190,7 @@ router.route('/register')
                         accessToken:at,
                         user: {
                             name: result.name || '',
+                            identity: result.identity || '',
                             avatar: result.avatar || '',
                             telNo: result.telNo,
                             nickname: result.nickname || '',
@@ -182,7 +208,7 @@ router.route('/register')
 router.route('/modifyUser')
     .post(upload.none(),(req,res) => {
         util.jsonResponse(req,res,(tarData)=>{
-            let telNo = tarData.telNo;
+            let telNo = tarData.session.telNo;
             let user = {
                 sign: tarData.sign || '',
                 nickname: tarData.nickname || ''
@@ -193,6 +219,7 @@ router.route('/modifyUser')
                     code: 0,
                     data: {
                         name: result.name || '',
+                        identity: result.identity || '',
                         avatar: result.avatar || '',
                         telNo: result.telNo,
                         nickname: result.nickname || '',
@@ -210,6 +237,7 @@ router.route('/logout')
     .post((req,res) => {
         util.jsonResponse(req,res,()=>{
             delete req.session.telNo;
+            return P.resolve({code:0,data:{}});
         },util.noAuth)
     });
 
