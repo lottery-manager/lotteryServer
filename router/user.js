@@ -113,6 +113,8 @@ router.route('/login')
             let telNo = req.body.telNo;
             let password = req.body.password;
 
+            console.log(`手机号：${telNo},时间：${new Date()}`);
+
             if(!telNo || !password){
                 return P.resolve({code: 1, error: "无效参数"});
             }
